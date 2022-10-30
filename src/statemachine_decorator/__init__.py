@@ -1,5 +1,5 @@
 """
-from src.statemachine_Cmtheit import stateDefine
+from src.statemachine_decorator import stateDefine
 if __name__ == '__main__':
     # States data structure is a net, main class is StateNet, it countains node class called StateNode.
     # Every state is a string, the state node is s subclass of str

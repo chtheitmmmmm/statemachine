@@ -3,13 +3,13 @@ This is python package that offer state machine solution by class decorator.
 # install
 
 ```shell
-pip install state_machine
+pip3 install statemachine-decorator
 ```
 
 # example
 
 ```python
-from statemachine_Cmtheit import statemachine
+from statemachine_decorator import statemachine
 
 
 @statemachine.stateDefine({
@@ -28,8 +28,10 @@ print(mat.state)
 ```
 
 # more detail
+
 ```python
-from src.statemachine_Cmtheit import stateDefine
+from src.statemachine_decorator import stateDefine
+
 if __name__ == '__main__':
     # States data structure is a net, main class is StateNet, it countains node class called StateNode.
     # Every state is a string, the state node is s subclass of str
@@ -56,18 +58,26 @@ if __name__ == '__main__':
         #       # can noly be changed by switch method.
         def __init__(self, state: str):
             self.switch(state)
+
+
     class subItem(StatefulItem):
         # inherit father's states
         def __init__(self):
             self.switch("state3")
+
+
     @stateDefine({
-        'state1': {'state2'},    # modify father's states. It cause to father's 'state1' has the new one entry, and if father's 'state1' has old entrys, they will be cut totally.
-        "state2": {"state1"},    # this modify will cut old entries: "state1" -> "state2", "state3" -> "state2", and build new : "state4" -> "state2"
+        'state1': {'state2'},
+        # modify father's states. It cause to father's 'state1' has the new one entry, and if father's 'state1' has old entrys, they will be cut totally.
+        "state2": {"state1"},
+        # this modify will cut old entries: "state1" -> "state2", "state3" -> "state2", and build new : "state4" -> "state2"
         "state4": {"state1", "state3"}  # add new state! And relate it to old states.
         # attention: sub class can only add new state and modify old state's entries, if you want to delete old state, please change a mind(reconstruct your class relationships)
     })
     class subItem2(StatefulItem):
         pass
+
+
     item = StatefulItem("state1")
     print(item.state)  # "state1"
     item.switch("state2")
