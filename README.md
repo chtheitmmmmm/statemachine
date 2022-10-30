@@ -72,13 +72,21 @@ if __name__ == '__main__':
         "state2": {"state1"},
         # this modify will cut old entries: "state1" -> "state2", "state3" -> "state2", and build new : "state4" -> "state2"
         "state4": {"state1", "state3"}  # add new state! And relate it to old states.
-        # attention: sub class can only add new state and modify old state's entries, if you want to delete old state, please change a mind(reconstruct your class relationships)
+        # ATTENTION: sub class can only add new state and modify old state's entries, if you want to delete old state, please change a mind(reconstruct your class relationships)
     })
     # new in 1.1.0
     class subItem2(StatefulItem):
         pass
-
-
+    
+    @stateDefine({}, "state3")
+    # default state, which will trigger a switch() function call after __init__ is called
+    class subitem3(StatefulItem):
+        pass
+    @stateDefine({}, "state2")
+    # rewrite default state, ATTENTION: it is unsafe, because super class will call switch previously,
+    # and that place the object to the super class's default state, and then may cause an impossible switching.
+    class subsubitem3(subitem3):
+        pass
     item = StatefulItem("state1")
     print(item.state)  # "state1"
     item.switch("state2")
@@ -104,6 +112,10 @@ if __name__ == '__main__':
     print(subitem.state)
     for s in subitem.states:
         print(s, s.nextStates)
+    subi3 = subitem3()
+    print(subi3.state)
+    subi4 = subsubitem3()
+    print(subi4.state)
 ```
 
 more document see:<a href="./src/statemachine/__init__.py">__ init__.py</a>

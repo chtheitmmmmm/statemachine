@@ -160,15 +160,13 @@ def stateDefine(states: dict[str: set], default=None):
             cls.states = copy.deepcopy(cls.states)
             # modify sub class's state net!
             cls.states.update(states)
-            print(cls.states)
-
         else:
             cls.states = StateNet(states)
         new_setattr = None
         new_delattr = None
         new_init_ = None
-        if '__setattr__' in cls.__dict__:
-            origin_setattr = cls.__setattr__
+        if hasattr(cls, '__setattr__'):
+            origin_setattr = getattr(cls, '__setattr__')
             def _readonlify__setattr__(self, key, value):
                 if key in keywords:
                     raise AttributeError('State\swtich\states is readonly!')
@@ -182,8 +180,8 @@ def stateDefine(states: dict[str: set], default=None):
                 else:
                     return object.__setattr__(self, key, value)
             new_setattr = _object__setattr
-        if '__delattr__'  in cls.__dict__:
-            origin_delattr = cls.__delattr__
+        if hasattr(cls, '__delattr__'):
+            origin_delattr = getattr(cls, '__delattr__')
             def __new_delattr__(self, key):
                 if key in keywords:
                     raise AttributeError('State cannot be deleted!')
@@ -197,8 +195,8 @@ def stateDefine(states: dict[str: set], default=None):
             new_delattr = __object_delattr__
 
         if not default is None:
-            if '__init__' in cls.__dict__:
-                origin_init = cls.__init__
+            if hasattr(cls, '__init__'):
+                origin_init = getattr(cls, '__init__')
                 def __default_state_init__(self, *args, **kwargs):
                     origin_init(self, *args, **kwargs)
                     self.switch(default)

@@ -5,18 +5,22 @@ from statemachine_decorator import stateDefine
     "s2": set()
 }, 's1')
 class span:
+    def __init__(self):
+        print("init span")
     pass
 
 @stateDefine({
     's3': {'s1'}
 })
 class subspan(span):
-    pass
+    def __init__(self):
+        super(subspan, self).__init__()
+        print('init_sub_span')
 
 @stateDefine({
     's1': {'s3', 's4'},
     's4': {"s2"}
-}, 's4')
+}, 's3')
 class subsubspan(subspan):
     pass
 

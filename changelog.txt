@@ -14,4 +14,8 @@ bugfix: Fix when pass an unexsited state is passed as an entry is legal.
 
 1.2.1
 2022.10.30
-buxfix: Fix when default state is empty string will be ignored.
+bugfix: Fix when default state is empty string will be ignored.
+
+1.2.2
+2022.10.30
+bugfix: Fix Super class's __init__ won't be called when inherit.
