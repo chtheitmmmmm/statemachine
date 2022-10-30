@@ -196,7 +196,7 @@ def stateDefine(states: dict[str: set], default=None):
                 object.__delattr__(self, key)
             new_delattr = __object_delattr__
 
-        if default:
+        if not default is None:
             if '__init__' in cls.__dict__:
                 origin_init = cls.__init__
                 def __default_state_init__(self, *args, **kwargs):
