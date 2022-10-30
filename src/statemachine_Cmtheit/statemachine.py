@@ -74,29 +74,20 @@ class StateNet:
 
     def add(self, entry: set[str], name: str):
         """
-        :param entry: a tuple that contains all entry states' name
+        :param entry: a set that contains all entry states' name
         :param name:  the new state's name
         """
-        assert not name in self.__states, "State has existed in the net."
         assert all(any(sn == s for s in self.__states) for sn in entry), "Some entry are not exists"
-        state = StateNode(name)
+        if not name in self.__states:
+            state = StateNode(name)
+        else:
+            state = self[name]
         if entry:
             for s in self.__states:
+                del s[state]
                 if s in entry:
-                    s.addNext(state)
+                    s.addNext(state)    # add new entries
         self.__states.add(state)
-
-    def remove(self, name: str):
-        """
-        remove a state from the net.
-        is safe to remove a node that is not exists.
-        :param name: the stateNode to be removed
-        :return: nothing
-        """
-        if name in self.__states:
-            if name == self.__current:
-                for s in self.__states:
-                    del s[name]
 
     def __getitem__(self, item: str):
         assert isinstance(item, str), "State key is not string"
@@ -116,6 +107,14 @@ class StateNet:
 
     def __str__(self):
         return str(self.__states)
+
+    def update(self, other: dict[str: set]):
+        for s in other:
+            if not s in self.__states:
+                self.__states.add(StateNode(s))
+        for s, entries in other.items():
+            self.add(entries, s)
+
 
 def _illegal_(states):
     assert len(set(states)) == len(states), "Repeat state detected."
@@ -158,6 +157,10 @@ def stateDefine(states: dict[str: set]):
         # 是否为继承来的
         if hasattr(cls, 'states') and isinstance(cls.states, StateNet):
             cls.states = copy.deepcopy(cls.states)
+            # modify sub class's state net!
+            cls.states.update(states)
+            print(cls.states)
+
         else:
             cls.states = StateNet(states)
         new_setattr = None
