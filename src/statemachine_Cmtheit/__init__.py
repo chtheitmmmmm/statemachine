@@ -48,4 +48,4 @@ if __name__ == '__main__':
         print("cannot switch to state1!")
     print(item.state1, item.state2, item.state3)
 """
-from statemachine import stateDefine
+from statemachine_Cmtheit import stateDefine

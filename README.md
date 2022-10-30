@@ -9,7 +9,8 @@ pip install state_machine
 # example
 
 ```python
-from statemachine import statemachine
+from statemachine_Cmtheit import statemachine
+
 
 @statemachine.stateDefine({
     "solid": {"gas", "fuild"},
@@ -20,6 +21,7 @@ from statemachine import statemachine
 class matter:
     def __init__(self):
         self.switch("solid")
+
 
 mat = matter()
 print(mat.state)
