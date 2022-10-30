@@ -60,7 +60,7 @@ class StateNet:
     def __init__(self, net={}):
         # an empty net
         assert isinstance(net, dict), 'net must be a dict with str keys and set values'
-        assert all(all(s for s in sn) for sn in net)
+        assert all(all(s in net for s in net[sn]) for sn in net), 'All states should be exist in your net! Check out your argument carefully.'
         self.__states = set()
         for sn in net:
             node = StateNode(sn)
@@ -138,7 +138,7 @@ def _illegal_(states):
 特点：提供可靠状态继承，没有元类不兼容问题，目前最推荐
 注意：若继承自没有被本装饰器装饰的类，应确保它没有同时有states、switch、以及states中所有的属性
 """
-def stateDefine(states: dict[str: set]):
+def stateDefine(states: dict[str: set], default=None):
     """
 
     :param states: a dict that defines a net{
@@ -146,6 +146,7 @@ def stateDefine(states: dict[str: set]):
             entries(所有能转换为该状态的状态，类型为字符串）
         }
     }
+    :param default: default state
     子类可以更新父类某状态节点的入边
     """
     _illegal_(states)
@@ -164,8 +165,8 @@ def stateDefine(states: dict[str: set]):
         else:
             cls.states = StateNet(states)
         new_setattr = None
-        new_init_subclass = None
         new_delattr = None
+        new_init_ = None
         if '__setattr__' in cls.__dict__:
             origin_setattr = cls.__setattr__
             def _readonlify__setattr__(self, key, value):
@@ -194,6 +195,18 @@ def stateDefine(states: dict[str: set]):
                     raise AttributeError('State cannot be deleted!')
                 object.__delattr__(self, key)
             new_delattr = __object_delattr__
+
+        if default:
+            if '__init__' in cls.__dict__:
+                origin_init = cls.__init__
+                def __default_state_init__(self, *args, **kwargs):
+                    origin_init(self, *args, **kwargs)
+                    self.switch(default)
+                new_init_ = __default_state_init__
+            else:
+                def __default_state_init__(self, *args, **kwargs):
+                    self.switch(default)
+                new_init_ = __default_state_init__
 
         def switch(self, name: str):
             """
@@ -224,6 +237,9 @@ def stateDefine(states: dict[str: set]):
         cls.state = state
         cls.__setattr__ = new_setattr
         cls.switch = switch
+        if new_init_:
+            cls.__init__ = new_init_
+        cls.__delattr__ = new_delattr
         return cls
     return dec
 

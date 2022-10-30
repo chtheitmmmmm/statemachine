@@ -74,6 +74,7 @@ if __name__ == '__main__':
         "state4": {"state1", "state3"}  # add new state! And relate it to old states.
         # attention: sub class can only add new state and modify old state's entries, if you want to delete old state, please change a mind(reconstruct your class relationships)
     })
+    # new in 1.1.0
     class subItem2(StatefulItem):
         pass
 
