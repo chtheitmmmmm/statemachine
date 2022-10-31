@@ -198,8 +198,8 @@ def stateDefine(states: dict[str: set], default=None):
             if hasattr(cls, '__init__'):
                 origin_init = getattr(cls, '__init__')
                 def __default_state_init__(self, *args, **kwargs):
-                    origin_init(self, *args, **kwargs)
                     self.switch(default)
+                    origin_init(self, *args, **kwargs)
                 new_init_ = __default_state_init__
             else:
                 def __default_state_init__(self, *args, **kwargs):

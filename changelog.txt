@@ -19,3 +19,7 @@ bugfix: Fix when default state is empty string will be ignored.
 1.2.2
 2022.10.30
 bugfix: Fix Super class's __init__ won't be called when inherit.
+
+1.2.3
+2022.10.31
+adjust: Let state attribute is visitable in __init__ when default state is set.
