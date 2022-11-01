@@ -298,7 +298,6 @@ def stateDefine(states: dict[str: set]={}, default_state:str|None=None, nonable:
                 nonlocal dec
                 dec.__sub = True
                 subcls._states_inherit = state_net
-                print(subcls.__name__, subcls._states_inherit)
             cls.__init_subclass__ = __sub_init_subclass__
         else:
             @classmethod
@@ -306,7 +305,6 @@ def stateDefine(states: dict[str: set]={}, default_state:str|None=None, nonable:
                 nonlocal dec
                 dec.__sub = True
                 subcls._states_inherit = state_net
-                print(subcls.__name__, subcls._states_inherit)
             cls.__init_subclass__ = __sub_init_subclass__
         return cls
     dec.__sub = False
