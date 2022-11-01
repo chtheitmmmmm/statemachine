@@ -34,3 +34,8 @@ optimize: Cut some methods' creation while not necessary.
 adjust: If no default state is given and not switch to a state. The default state None will be use instead of raise an error.
 adjust: Add a parameter that decide whether None state is alllowed, if allowed, an special state node called 'NS'(And writen as too) will add to the net if a None is appear in your dict passed.
 adjust: Support more naming style as you want.
+
+2.0.2
+2022.11.02
+bugfix: verbose output deleted
+bugfix: rewrite method on class improperly

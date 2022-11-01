@@ -138,17 +138,26 @@ if __name__ == '__main__':
         pass
     p = person_can_sit()
     p.switch('stand')
-    print(f'创建父类中没有的新状态并与原状态网互操作-- 成功')
+    print(f'创建父类中没有的新状态并与原状态网互操作 -- 成功')
     @stateDefine({})
     class person_wring_run(peoplerunning):
         pass
     try:
         p = person_wring_run()
-        print('覆盖父类默认 default，并切换 nonable 能力 -- 错误')
+        print(f'覆盖父类默认 default，并切换 nonable 能力 {p.state} -- 错误')
     except UnswitchableStateException as e:
         print('覆盖父类默认 default，并切换 nonable 能力 -- 通过')
-    try:
-        print(f'覆盖父类nonable能力 {p.state} -- 错误')
-    except UnswitchableStateException as e:
-        print('覆盖父类nonable能力 -- 通过')
-        print('抛出错误', e)
+    @stateDefine({
+        "stand": {"jump", "walk"},
+        "jump": {"stand"},
+    }, default_state="stand")
+    class person_jump(person_walking):
+        def __init__(self):
+            self.height = 0
+        def jumphigh(self):
+            self.switch('jump')
+            self.height += 10
+            print(self.state, 'at', self.height, 'inches height!')
+
+    p = person_jump()
+    p.jumphigh()

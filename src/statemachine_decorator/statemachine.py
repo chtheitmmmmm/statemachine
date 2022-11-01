@@ -237,59 +237,53 @@ def stateDefine(states: dict[str: set]={}, default_state:str|None=None, nonable:
         cls.state = __getstate
         cls.states = _getstates
         cls.switch = __switch
-        if '__init__' in cls.__dict__:
-            origin_init = cls.__init__
-            if nonable:
-                def __default_init__(self, *args, **kwargs):
-                    nonlocal dec, default_state, nonable
-                    if dec.__sub:
-                        origin_init(self, *args, **kwargs)
-                    else:
-                        if default_state is not NS:
-                            self.switch(default_state)
-                        else:
-                            self.__state = default_state
-                        origin_init(self, *args, **kwargs)
-
-                cls.__init__ = __default_init__
-            elif default_state is not None:
-                def __default_init__(self, *args, **kwargs):
-                    nonlocal dec, default_state, nonable
-                    if dec.__sub:
-                        origin_init(self, *args, **kwargs)
-                    else:
-                        self.switch(default_state)
-                        origin_init(self, *args, **kwargs)
-
-                cls.__init__ = __default_init__
-        elif nonable or default_state is not None:
+        origin_init = cls.__init__
+        if nonable:
             def __default_init__(self, *args, **kwargs):
-                nonlocal default_state
-                self.switch(default_state)
-            cls.__init__ = __default_init__
-        if '__setattr__' in cls.__dict__:
-            _origin_setattr = cls.__setattr__
-
-            def __readonlify__setattr__(self, key, value):
-                if key in self.states:
-                    raise ReadonlyStatesException(type(self), key)
+                nonlocal dec, default_state, nonable
+                if dec.__sub:
+                    origin_init(self, *args, **kwargs)
+                    try:
+                        self.state
+                    except NoStateException:
+                        self.switch(default_state)
                 else:
-                    _origin_setattr(self, key, value)
+                    self.switch(default_state)
+                    origin_init(self, *args, **kwargs)
 
-            cls.__setattr__ = __readonlify__setattr__
-        else:
-            cls.__setattr__ = __object_setattr__
-        if '__delattr__' in cls.__dict__:
-            _origin_delattr = cls.__delattr__
+            cls.__init__ = __default_init__
+        elif default_state is not None:
+            def __default_init__(self, *args, **kwargs):
+                nonlocal dec, default_state, nonable
+                if dec.__sub:
+                    origin_init(self, *args, **kwargs)
+                    try:
+                        self.state
 
-            def __readonly_delattr__(self, key):
-                if key in self.states:
-                    raise ReadonlyStatesException(type(self), key)
-                _origin_delattr(self, key)
+                    except NoStateException:
+                        self.switch(default_state)
+                else:
+                    self.switch(default_state)
+                    origin_init(self, *args, **kwargs)
 
-            cls.__delattr__ = __readonly_delattr__
-        else:
-            cls.__delattr__ = __object_delattr__
+            cls.__init__ = __default_init__
+        _origin_setattr = cls.__setattr__
+
+        def __readonlify__setattr__(self, key, value):
+            if key in self.states:
+                raise ReadonlyStatesException(type(self), key)
+            else:
+                _origin_setattr(self, key, value)
+
+        cls.__setattr__ = __readonlify__setattr__
+        _origin_delattr = cls.__delattr__
+
+        def __readonly_delattr__(self, key):
+            if key in self.states:
+                raise ReadonlyStatesException(type(self), key)
+            _origin_delattr(self, key)
+
+        cls.__delattr__ = __readonly_delattr__
         if '__init_subclass__' in cls.__dict__ and hasattr(cls.__init_subclass__, '__func__'):
             origin_init_subclass = cls.__init_subclass__
             @classmethod
