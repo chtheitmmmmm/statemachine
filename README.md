@@ -77,16 +77,21 @@ if __name__ == '__main__':
     # new in 1.1.0
     class subItem2(StatefulItem):
         pass
-    
+
+
     @stateDefine({}, "state3")
     # default state, which will trigger a switch() function call after __init__ is called
     class subitem3(StatefulItem):
         pass
+
+
     @stateDefine({}, "state2")
     # rewrite default state, ATTENTION: it is unsafe, because super class will call switch previously,
     # and that place the object to the super class's default state, and then may cause an impossible switching.
     class subsubitem3(subitem3):
         pass
+
+
     item = StatefulItem("state1")
     print(item.state)  # "state1"
     item.switch("state2")
@@ -119,3 +124,9 @@ if __name__ == '__main__':
 ```
 
 more document see:<a href="./src/statemachine/__init__.py">__ init__.py</a>
+
+## New in 1.2.5
+
+NS as a new special value of the none state is added! You can pass None or NS to the first parameter to use it!
+
+The NS state is a special state, which represent that the object has no current state, which is also a special state.

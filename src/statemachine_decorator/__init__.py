@@ -64,4 +64,4 @@ if __name__ == '__main__':
     for s in subitem.states:
         print(s, s.nextStates)
 """
-from .statemachine import stateDefine
+from .statemachine import stateDefine, state_define, StateDefine

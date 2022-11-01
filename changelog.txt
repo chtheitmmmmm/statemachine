@@ -23,3 +23,14 @@ bugfix: Fix Super class's __init__ won't be called when inherit.
 1.2.3
 2022.10.31
 adjust: Let state attribute is visitable in __init__ when default state is set.
+
+2.0.0
+2022.11.01
+reconstruct: The first augument you pass, turns their entries to their exits.
+feat: Add the NoneState class, only has one instance NS. The NS state could be switch to any other states. So whether use it is your decision.
+feat: Add exception classes to replace inner Exception
+bugfix: Support None replace the empty set() passed.
+optimize: Cut some methods' creation while not necessary.
+adjust: If no default state is given and not switch to a state. The default state None will be use instead of raise an error.
+adjust: Add a parameter that decide whether None state is alllowed, if allowed, an special state node called 'NS'(And writen as too) will add to the net if a None is appear in your dict passed.
+adjust: Support more naming style as you want.

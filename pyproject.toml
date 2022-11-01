@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "statemachine_decorator"
-version = "1.2.2"
+version = "2.0.0"
 authors = [
   { name="Cmtheit", email="cmtheit@outlook.com" },
 ]
 description = "This package offers a function which decorate any class with given states. And make sure any its object's state switch between them."
 readme = "README.md"
-requires-python = ">=3.2"
+requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",

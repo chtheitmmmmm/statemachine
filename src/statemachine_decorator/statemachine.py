@@ -1,4 +1,9 @@
 import copy
+import types
+
+from .exceptions import *
+
+NS = None
 
 class StateNode(str):
     # 无权有向状态图中的一个节点，用户可切换的下一个状态为当前状态节点的 nextStates 集合中的值
@@ -25,16 +30,16 @@ class StateNode(str):
         # 下一个节点是否可切换
         return any(s == stateName for s in self.__nextStates)
 
-    def __getitem__(self, item: str | int):
+    def __getitem__(self, item: str | int | None):
+        if item is None:
+            item = NS
         if isinstance(item, str):
-            assert isinstance(item, str), "Next state getter must receive a string!"
             for s in self.__nextStates:
                 if s == item:
                     return s
             return None
         else:
             return super(StateNode, self).__getitem__(item)
-
 
     def __delitem__(self, key: str | int):
         """
@@ -50,6 +55,54 @@ class StateNode(str):
 
     def __bool__(self):
         return True
+
+class NoneState(StateNode):
+    """
+    The special state called none_state
+    """
+    _____ = False
+    def __new__(cls, *args):
+        if NoneState._____:
+            return NS
+        else:
+            NoneState._____ = True
+            return str.__new__(cls)
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def switchable(self, stateName: str) -> bool:
+        return True
+
+    def __init__(self):
+        if not NoneState._____:
+            self.__nextStates = set()
+
+    def __str__(self):
+        return '<____NoneState____>'
+    def __repr__(self):
+        return repr(str(self))
+    def __init_subclass__(cls, **kwargs):
+        raise TypeError("type 'NoneState' is not an acceptable base type")
+
+    def __bool__(self):
+        return False
+
+    def __or__(self, other):
+        if isinstance(other, types.UnionType):
+            return other
+        else:
+            raise TypeError
+
+    def __ror__(self, other):
+        return self | other
+
+    def __eq__(self, other):
+        return other is NS
+
+
+NS = NoneState()
+
 """
 状态网解决方案
 优点：能精准控制状态的切换能力
@@ -59,38 +112,31 @@ class StateNet:
     __slots__ = ['__states']
     def __init__(self, net={}):
         # an empty net
-        assert isinstance(net, dict), 'net must be a dict with str keys and set values'
-        assert all(all(s in net for s in net[sn]) for sn in net), 'All states should be exist in your net! Check out your argument carefully.'
         self.__states = set()
-        for sn in net:
-            node = StateNode(sn)
-            self.__states.add(node)
+        assert isinstance(net, dict), 'net must be a dict with str keys and set values'
+        assert all(self.__states.add(StateNode(sn) if sn is not NS else NS) or all(s in net and isinstance(s, str) for s in (net[sn] if net[sn] else set())) for sn in net ), \
+            'All states should be exist and must be instanceof str in your net! Check out your argument carefully.'
         for sn in self.__states:
-            for s in net[sn]:
-                for ns in self.__states:
-                    if ns == s:
-                        ns.addNext(sn)
-                        break
+            if not net[sn] is None:  # support None passed
+                for s in net[sn]:
+                    sn.addNext(self[s])
 
-    def add(self, entry: set[str], name: str):
+    def add(self, exits: set | None, name: str):
         """
-        :param entry: a set that contains all entry states' name
+        :param exits: a set that contains all exits states' name
         :param name:  the new state's name
         """
-        assert all(any(sn == s for s in self.__states) for sn in entry), "Some entry are not exists"
+        assert all((any(self[sn]) and sn is not NS) for sn in (exits if (exits is not None) else set())), "Some exit are not exists or add a NS with any exit!"
         if not name in self.__states:
             state = StateNode(name)
         else:
             state = self[name]
-        if entry:
-            for s in self.__states:
-                del s[state]
-                if s in entry:
-                    s.addNext(state)    # add new entries
         self.__states.add(state)
+        for ns in (exits if exits is not None else set()):
+            state.addNext(self[ns])
 
     def __getitem__(self, item: str):
-        assert isinstance(item, str), "State key is not string"
+        assert isinstance(item, str), "State key is not string or NS, None is not NS!"
         for s in self.__states:
             if s == item:
                 return s
@@ -98,8 +144,6 @@ class StateNet:
 
     def __delitem__(self, key: str):
         assert isinstance(key, str), "must delete a string key."
-        for s in self.__states:
-            del s[key]
         self.__states.remove(key)
 
     def __iter__(self):
@@ -110,11 +154,19 @@ class StateNet:
 
     def update(self, other: dict[str: set]):
         for s in other:
-            if not s in self.__states:
-                self.__states.add(StateNode(s))
-        for s, entries in other.items():
-            self.add(entries, s)
+            self.__states.add(StateNode(s) if s is not NS else NS)
+        for s, exits in other.items():
+            self.add(exits, s)
 
+    def copy(self):
+        newnet = StateNet()
+        for s in self:
+            newnet.__states.add(s)
+        for s in self.__states:
+            if s is not NS:
+                for ns in s.nextStates:
+                    newnet[s].addNext(ns)
+        return newnet
 
 def _illegal_(states):
     assert len(set(states)) == len(states), "Repeat state detected."
@@ -125,121 +177,181 @@ def _illegal_(states):
             raise ValueError('"state" is protected for attribute state.')
         elif state == 'states':
             raise ValueError('"states" is protected for readonly attribute states.')
+        elif state is NS:
+            raise ValueError('NS cannot appear in your state net directly!')
         if not isinstance(state, str):
             raise TypeError("Non string state detected!")
         if not state.isidentifier():
             raise ValueError("An identifier state value is expected.")
         if not state.isupper():
             Warning('Uppercase is suggested as state value.')
-    return True
+
+
 """
 类修饰器，
 状态池从传入之时，便只能从switch函数切换
 特点：提供可靠状态继承，没有元类不兼容问题，目前最推荐
 注意：若继承自没有被本装饰器装饰的类，应确保它没有同时有states、switch、以及states中所有的属性
 """
-def stateDefine(states: dict[str: set], default=None):
+def stateDefine(states: dict[str: set]={}, default_state:str|None=None, nonable:bool=False):
     """
-
     :param states: a dict that defines a net{
         state: {
             entries(所有能转换为该状态的状态，类型为字符串）
         }
     }
-    :param default: default state
+    :param default_state: default state
+    :param nonable: If state can switch or have an empty state
     子类可以更新父类某状态节点的入边
     """
     _illegal_(states)
-    keywords = tuple(states) + ('switch', 'state', 'states')
+    if nonable:
+        if default_state is None:
+            default_state = NS
+            states[NS] = None
+    elif default_state is NS:
+        raise ValueError("Cannot set default state to NS when given nonable False")
     def dec(cls: type):
-        for state, nextStates in states.items():
-            assert isinstance(state, str) and (isinstance(nextStates, set) or nextStates is None), 'State must be string and nextStates must be set'
+        nonlocal states
+        for state, exitStates in states.items():
+            assert isinstance(state, str) and (isinstance(exitStates, set) or exitStates is None), \
+                'State must be string or None and nextStates must be <class set>'
             setattr(cls, state, state)
         # 是否为继承来的
-        if hasattr(cls, 'states') and isinstance(cls.states, StateNet):
-            cls.states = copy.deepcopy(cls.states)
-            # modify sub class's state net!
-            cls.states.update(states)
-        else:
-            cls.states = StateNet(states)
-        new_setattr = None
-        new_delattr = None
-        new_init_ = None
-        if hasattr(cls, '__setattr__'):
-            origin_setattr = getattr(cls, '__setattr__')
-            def _readonlify__setattr__(self, key, value):
-                if key in keywords:
-                    raise AttributeError('State\swtich\states is readonly!')
+        if hasattr(cls, '_states_inherit') and isinstance(cls._states_inherit, StateNet):
+            # modify sub class's state net
+            if not nonable and NS in cls._states_inherit:    # remove NS
+                state_net = cls._states_inherit.copy()
+                del state_net[NS]
+            else:           # just copy!
+                if len(states):
+                    state_net = cls._states_inherit.copy()
+                    state_net.update(states)
                 else:
-                    return origin_setattr(self, key, value)
-            new_setattr = _readonlify__setattr__
-        else:
-            def _object__setattr(self, key, value):
-                if key in keywords:
-                    raise AttributeError('State\swtich\states is readonly!')
-                else:
-                    return object.__setattr__(self, key, value)
-            new_setattr = _object__setattr
-        if hasattr(cls, '__delattr__'):
-            origin_delattr = getattr(cls, '__delattr__')
-            def __new_delattr__(self, key):
-                if key in keywords:
-                    raise AttributeError('State cannot be deleted!')
-                origin_delattr(self, key)
-            new_delattr = __new_delattr__
-        else:
-            def __object_delattr__(self, key):
-                if key in keywords:
-                    raise AttributeError('State cannot be deleted!')
-                object.__delattr__(self, key)
-            new_delattr = __object_delattr__
-
-        if not default is None:
-            if hasattr(cls, '__init__'):
-                origin_init = getattr(cls, '__init__')
-                def __default_state_init__(self, *args, **kwargs):
-                    self.switch(default)
-                    origin_init(self, *args, **kwargs)
-                new_init_ = __default_state_init__
-            else:
-                def __default_state_init__(self, *args, **kwargs):
-                    self.switch(default)
-                new_init_ = __default_state_init__
-
-        def switch(self, name: str):
-            """
-            switch to a state!
-            :param name:
-            :return: nothing
-            """
-            assert isinstance(name, str)
-            try:
-                if self.__state.switchable(name):
-                    self.__state = cls.states[name]
-                else:
-                    raise ValueError(f"No such state to switch! All allowed is {self.__state.nextStates}")
-            except AttributeError:
-                node = cls.states[name]
-                if node:
-                    self.__state = node
-                else:
-                    raise ValueError(f"No such state to entry! All allowed is {cls.states}")
-
+                    state_net = cls._states_inherit
+        else: state_net = StateNet(states)
         @property
-        def state(self):
-            try:
-                return self.__state
-            except AttributeError:
-                raise AttributeError("No state on the object. Please switch a state first!")
+        def _getstates(self):
+            nonlocal state_net
+            return state_net
+        cls.state = __getstate
+        cls.states = _getstates
+        cls.switch = __switch
+        if '__init__' in cls.__dict__:
+            origin_init = cls.__init__
+            if nonable:
+                def __default_init__(self, *args, **kwargs):
+                    nonlocal dec, default_state, nonable
+                    if dec.__sub:
+                        origin_init(self, *args, **kwargs)
+                    else:
+                        if default_state is not NS:
+                            self.switch(default_state)
+                        else:
+                            self.__state = default_state
+                        origin_init(self, *args, **kwargs)
 
-        cls.state = state
-        cls.__setattr__ = new_setattr
-        cls.switch = switch
-        if new_init_:
-            cls.__init__ = new_init_
-        cls.__delattr__ = new_delattr
+                cls.__init__ = __default_init__
+            elif default_state is not None:
+                def __default_init__(self, *args, **kwargs):
+                    nonlocal dec, default_state, nonable
+                    if dec.__sub:
+                        origin_init(self, *args, **kwargs)
+                    else:
+                        self.switch(default_state)
+                        origin_init(self, *args, **kwargs)
+
+                cls.__init__ = __default_init__
+        elif nonable or default_state is not None:
+            def __default_init__(self, *args, **kwargs):
+                nonlocal default_state
+                self.switch(default_state)
+            cls.__init__ = __default_init__
+        if '__setattr__' in cls.__dict__:
+            _origin_setattr = cls.__setattr__
+
+            def __readonlify__setattr__(self, key, value):
+                if key in self.states:
+                    raise ReadonlyStatesException(type(self), key)
+                else:
+                    _origin_setattr(self, key, value)
+
+            cls.__setattr__ = __readonlify__setattr__
+        else:
+            cls.__setattr__ = __object_setattr__
+        if '__delattr__' in cls.__dict__:
+            _origin_delattr = cls.__delattr__
+
+            def __readonly_delattr__(self, key):
+                if key in self.states:
+                    raise ReadonlyStatesException(type(self), key)
+                _origin_delattr(self, key)
+
+            cls.__delattr__ = __readonly_delattr__
+        else:
+            cls.__delattr__ = __object_delattr__
+        if '__init_subclass__' in cls.__dict__ and hasattr(cls.__init_subclass__, '__func__'):
+            origin_init_subclass = cls.__init_subclass__
+            @classmethod
+            def __sub_init_subclass__(subcls, *args, **kwargs):
+                origin_init_subclass.__func__(subcls, *args, **kwargs)
+                nonlocal dec
+                dec.__sub = True
+                subcls._states_inherit = state_net
+                print(subcls.__name__, subcls._states_inherit)
+            cls.__init_subclass__ = __sub_init_subclass__
+        else:
+            @classmethod
+            def __sub_init_subclass__(subcls, *args, **kwargs):
+                nonlocal dec
+                dec.__sub = True
+                subcls._states_inherit = state_net
+                print(subcls.__name__, subcls._states_inherit)
+            cls.__init_subclass__ = __sub_init_subclass__
         return cls
+    dec.__sub = False
     return dec
+state_define = stateDefine  # other naming styles
+StateDefine = stateDefine
+
+def __object_setattr__(self, key, value):
+    if key in self.states:
+        raise ReadonlyStatesException(type(self), key)
+    else:
+        return object.__setattr__(self, key, value)
+
+def __object_delattr__(self, key):
+    if key in self.states:
+        raise ReadonlyStatesException(type(self), key)
+    object.__delattr__(self, key)
+
+def __switch(self, name: str):
+    """
+    switch to a state!
+    :param name:
+    """
+    try:
+        if name is not NS:
+            assert isinstance(name, str), \
+                "Try to switch to a non string!"
+            if self.state.switchable(name):
+                self.__state = self.states[name]
+            else:
+                raise UnswitchableStateException(type(self), name, self.state, self.state.nextStates)
+        else:
+            raise UnswitchableStateException(type(self), name, self.state, set(state for state in self.states if state is not NS))
+    except NoStateException:
+        if name in self.states:
+            self.__state = self.states[name]
+        else:
+            raise UnswitchableStateException(type(self), name, None, set(state for state in self.states if state is not NS))
+# TODO: in the next version 2.1.0, change the state property to a nonlocal variable in the decorator, avoid user write the __state attribute, and pull down namespace pollution
+@property
+def __getstate(self):
+    try:
+        return self.__state
+    except AttributeError:
+        raise NoStateException(self)
 
 __all__ = ['stateDefine', 'StateMachine',
-           'StateNode', 'StateNet']
+           'StateNode', 'StateNet', "NS", 'state_define', 'StateDefine']

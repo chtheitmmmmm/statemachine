@@ -30,8 +30,10 @@ if __name__ == '__main__':
         def __init__(self):
             self.switch("state3")
     @stateDefine({
-        'state1': {'state2'},    # modify father's states. It cause to father's 'state1' has the new one entry, and if father's 'state1' has old entrys, they will be cut totally.
-        "state2": {"state1"},    # this modify will cut old entries: "state1" -> "state2", "state3" -> "state2", and build new : "state4" -> "state2"
+        'state1': {'state2'},
+        # modify father's states. It cause to father's 'state1' has the new one entry, and if father's 'state1' has old entrys, they will be cut totally.
+        "state2": {"state1"},
+        # this modify will cut old entries: "state1" -> "state2", "state3" -> "state2", and build new : "state4" -> "state2"
         "state4": {"state1", "state3"}  # add new state! And relate it to old states.
         # attention: sub class can only add new state and modify old state's entries, if you want to delete old state, please change a mind(reconstruct your class relationships)
     })
